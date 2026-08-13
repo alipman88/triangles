@@ -26,13 +26,29 @@ function Triangle(a, b, c) {
   this.b = b;
   this.c = c;
 
+  this.widestAngle = function() {
+    var vertices = this.verticesObtuseLast();
+    var opposite = vertices[2];
+    var adjacent1 = vertices[0];
+    var adjacent2 = vertices[1];
+
+    var a = opposite.distanceTo(adjacent1);
+    var b = opposite.distanceTo(adjacent2);
+    var c = adjacent1.distanceTo(adjacent2);
+
+    return Math.acos(
+      (Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) /
+      (2 * a * b)
+    );
+  }
+
   this.isObtuse = function() {
     var lenAB = this.a.distanceTo(this.b);
     var lenBC = this.b.distanceTo(this.c);
     var lenCA = this.c.distanceTo(this.a);
     var max = Math.max(lenAB, lenBC, lenCA);
 
-    return 2 * Math.pow(max, 2) >= Math.pow(lenAB, 2) + Math.pow(lenBC, 2) + Math.pow(lenCA, 2);
+    return 2 * Math.pow(max, 2) > Math.pow(lenAB, 2) + Math.pow(lenBC, 2) + Math.pow(lenCA, 2);
   }
 
   this.centroid = function() {
@@ -147,6 +163,11 @@ function Triangle(a, b, c) {
 
 function Fractal(trianglesArr) {
   this.triangles = [];
+
+  var angleScale = d3.scaleLinear()
+    .domain([0, Math.PI])
+    .range(["white", "black"]);
+
   this.svg = d3.select("#main");
 
   for (var triangleArr of trianglesArr) {
@@ -163,7 +184,9 @@ function Fractal(trianglesArr) {
       .enter()
       .append("polygon")
       .attr("points", function (d) { return d.toString(); })
-      .classed("obtuse", function (d) { return d.isObtuse(); });
+      .attr("fill", function(d) {
+        return angleScale(d.widestAngle());
+      })
   }
 
   this.iterate = function() {
