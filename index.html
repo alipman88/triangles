@@ -13,14 +13,16 @@
 
   <style>
     polygon {
-      stroke: black;
-      stroke-width: 0;
+      stroke: orange;
+      stroke-width: 0.5;
     }
   </style>
 </head>
 <body style="padding: 1em;">
-  <div class="container" style="text-align: center;"><button class="button-primary" onclick="fractal.iterate(); return false;">Iterate</a></div>
-  <svg id="main" width="1000" height="1000" style="display: block; margin: 1em auto;"></svg>
+  <div class="container" style="text-align: center;">
+    <button class="button-primary" onclick="fractal.iterate(); return false;">Iterate</a>
+  </div>
+  <svg id="main" width="1000" height="1000" style="display: block; margin: 1em auto; max-width: 100%"></svg>
   <script src="js/triangles.js"></script>
 </body>
 </html>

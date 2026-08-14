@@ -1,6 +1,6 @@
 Array.prototype.distanceTo = function(otherPoint) {
-  var diffX = this[0] - otherPoint[0];
-  var diffY = this[1] - otherPoint[1];
+  const diffX = this[0] - otherPoint[0];
+  const diffY = this[1] - otherPoint[1];
 
   return Math.sqrt(Math.pow(diffX, 2) + Math.pow(diffY, 2));
 };
@@ -27,14 +27,14 @@ function Triangle(a, b, c) {
   this.c = c;
 
   this.widestAngle = function() {
-    var vertices = this.verticesObtuseLast();
-    var opposite = vertices[2];
-    var adjacent1 = vertices[0];
-    var adjacent2 = vertices[1];
+    const vertices = this.verticesObtuseLast();
+    const opposite = vertices[2];
+    const adjacent1 = vertices[0];
+    const adjacent2 = vertices[1];
 
-    var a = opposite.distanceTo(adjacent1);
-    var b = opposite.distanceTo(adjacent2);
-    var c = adjacent1.distanceTo(adjacent2);
+    const a = opposite.distanceTo(adjacent1);
+    const b = opposite.distanceTo(adjacent2);
+    const c = adjacent1.distanceTo(adjacent2);
 
     return Math.acos(
       (Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) /
@@ -43,23 +43,24 @@ function Triangle(a, b, c) {
   }
 
   this.isObtuse = function() {
-    var lenAB = this.a.distanceTo(this.b);
-    var lenBC = this.b.distanceTo(this.c);
-    var lenCA = this.c.distanceTo(this.a);
-    var max = Math.max(lenAB, lenBC, lenCA);
+    const ab = this.a.distanceTo(this.b);
+    const bc = this.b.distanceTo(this.c);
+    const ca = this.c.distanceTo(this.a);
 
-    return 2 * Math.pow(max, 2) > Math.pow(lenAB, 2) + Math.pow(lenBC, 2) + Math.pow(lenCA, 2);
-  }
+    const longest = Math.max(ab, bc, ca);
+
+    return 0.01 + 2 * longest ** 2 > ab ** 2 + bc ** 2 + ca ** 2;
+  };
 
   this.centroid = function() {
-    var x = (this.a[0] + this.b[0] + this.c[0]) / 3;
-    var y = (this.a[1] + this.b[1] + this.c[1]) / 3;
+    const x = (this.a[0] + this.b[0] + this.c[0]) / 3;
+    const y = (this.a[1] + this.b[1] + this.c[1]) / 3;
 
     return [x, y];
   }
 
   this.trisect = function() {
-    var m = this.centroid();
+    const m = this.centroid();
 
     return [
       new Triangle(this.a, this.b, m),
@@ -69,9 +70,9 @@ function Triangle(a, b, c) {
   }
 
   this.merge = function(otherTriangle) {
-    var longestEdge = this.longestEdge();
-    var v1 = this.obtuseVertex();
-    var v2 = otherTriangle.obtuseVertex();
+    const longestEdge = this.longestEdge();
+    const v1 = this.obtuseVertex();
+    const v2 = otherTriangle.obtuseVertex();
 
     t1 = new Triangle(v1, v2, longestEdge[0]);
     t2 = new Triangle(v1, v2, longestEdge[1]);
@@ -103,49 +104,49 @@ function Triangle(a, b, c) {
   }
 
   this.longestEdge = function() {
-    var vertices = this.verticesObtuseLast();
+    const vertices = this.verticesObtuseLast();
 
     return [vertices[0], vertices[1]];
   }
 
   this.longestEdgeIsHorizontal = function() {
-    var vertices = this.longestEdge();
+    const vertices = this.longestEdge();
 
     return vertices[0][1] === vertices[1][1];
   }
 
   this.longestEdgeIsVertical = function() {
-    var vertices = this.longestEdge();
+    const vertices = this.longestEdge();
 
     return vertices[0][0] === vertices[1][0];
   }
 
   this.longestEdgeOnWesternBorder = function() {
-    var vertices = this.longestEdge();
+    const vertices = this.longestEdge();
 
     return this.longestEdgeIsVertical() && vertices[0][0] === 0;
   };
 
   this.longestEdgeOnEasternBorder = function() {
-    var vertices = this.longestEdge();
+    const vertices = this.longestEdge();
 
     return this.longestEdgeIsVertical() && vertices[0][0] === 1000;
   };
 
   this.longestEdgeOnNorthernBorder = function() {
-    var vertices = this.longestEdge();
+    const vertices = this.longestEdge();
 
     return this.longestEdgeIsHorizontal() && vertices[0][1] === 0;
   };
 
   this.longestEdgeOnSouthernBorder = function() {
-    var vertices = this.longestEdge();
+    const vertices = this.longestEdge();
 
     return this.longestEdgeIsHorizontal() && vertices[0][1] === 1000;
   };
 
   this.inBounds = function() {
-    for (var vertex of [this.a, this.b, this.c]) {
+    for (const vertex of [this.a, this.b, this.c]) {
       if (vertex[0] > 0 && vertex[0] < 1000 && vertex[1] > 0 && vertex[1] < 1000) {
         return true;
       }
@@ -155,7 +156,7 @@ function Triangle(a, b, c) {
   }
 
   this.longestEdgeToString = function() {
-    var vertices = this.longestEdge().cartesianSort();
+    const vertices = this.longestEdge().cartesianSort();
 
     return vertices[0][0] + "," + vertices[0][1] + " " + vertices[1][0] + "," + vertices[1][1];
   }
@@ -164,14 +165,14 @@ function Triangle(a, b, c) {
 function Fractal(trianglesArr) {
   this.triangles = [];
 
-  var angleScale = d3.scaleLinear()
+  const angleScale = d3.scaleLinear()
     .domain([0, Math.PI])
-    .range(["white", "black"]);
+    .range(["red", "yellow"]);
 
   this.svg = d3.select("#main");
 
-  for (var triangleArr of trianglesArr) {
-    var triangle = new Triangle(triangleArr[0], triangleArr[1], triangleArr[2])
+  for (const triangleArr of trianglesArr) {
+    const triangle = new Triangle(triangleArr[0], triangleArr[1], triangleArr[2])
     this.triangles.push(triangle);
   }
 
@@ -190,38 +191,38 @@ function Fractal(trianglesArr) {
   }
 
   this.iterate = function() {
-    var nextTriangles = [];
-    var obtusePairs = {};
+    const nextTriangles = [];
+    const obtusePairs = {};
 
     while (this.triangles.length > 0) {
-      var triangle = this.triangles.pop();
-      var newTriangles = [];
+      const triangle = this.triangles.pop();
+      let newTriangles = [];
 
       if (triangle.isObtuse()) {
-        var longestEdge = triangle.longestEdgeToString();
+        const longestEdge = triangle.longestEdgeToString();
 
         if (longestEdge in obtusePairs) {
-          var otherTriangle = obtusePairs[longestEdge];
+          const otherTriangle = obtusePairs[longestEdge];
           newTriangles = triangle.merge(otherTriangle);
           delete obtusePairs[longestEdge];
         } else if (triangle.longestEdgeOnWesternBorder()) {
-          var vertices = triangle.verticesObtuseLast();
-          var otherTriangle = new Triangle(vertices[0], vertices[1], [-vertices[2][0], vertices[2][1]]);
+          const vertices = triangle.verticesObtuseLast();
+          const otherTriangle = new Triangle(vertices[0], vertices[1], [-vertices[2][0], vertices[2][1]]);
           newTriangles = triangle.merge(otherTriangle);
           delete obtusePairs[longestEdge];
         } else if (triangle.longestEdgeOnEasternBorder()) {
-          var vertices = triangle.verticesObtuseLast();
-          var otherTriangle = new Triangle(vertices[0], vertices[1], [2000 - vertices[2][0], vertices[2][1]]);
+          const vertices = triangle.verticesObtuseLast();
+          const otherTriangle = new Triangle(vertices[0], vertices[1], [2000 - vertices[2][0], vertices[2][1]]);
           newTriangles = triangle.merge(otherTriangle);
           delete obtusePairs[longestEdge];
         } else if (triangle.longestEdgeOnNorthernBorder()) {
-          var vertices = triangle.verticesObtuseLast();
-          var otherTriangle = new Triangle(vertices[0], vertices[1], [vertices[2][0], -vertices[2][1]]);
+          const vertices = triangle.verticesObtuseLast();
+          const otherTriangle = new Triangle(vertices[0], vertices[1], [vertices[2][0], -vertices[2][1]]);
           newTriangles = triangle.merge(otherTriangle);
           delete obtusePairs[longestEdge];
         } else if (triangle.longestEdgeOnSouthernBorder()) {
-          var vertices = triangle.verticesObtuseLast();
-          var otherTriangle = new Triangle(vertices[0], vertices[1], [vertices[2][0], 2000 - vertices[2][1]]);
+          const vertices = triangle.verticesObtuseLast();
+          const otherTriangle = new Triangle(vertices[0], vertices[1], [vertices[2][0], 2000 - vertices[2][1]]);
           newTriangles = triangle.merge(otherTriangle);
           delete obtusePairs[longestEdge];
         } else {
@@ -231,14 +232,14 @@ function Fractal(trianglesArr) {
         newTriangles = triangle.trisect();
       }
 
-      for (var newTriangle of newTriangles) {
+      for (const newTriangle of newTriangles) {
         if (newTriangle.inBounds()) {
           nextTriangles.push(newTriangle);
         }
       }
     }
 
-    for (var longestEdge in obtusePairs) {
+    for (const longestEdge in obtusePairs) {
       nextTriangles.push(obtusePairs[longestEdge]);
     }
 
@@ -247,21 +248,23 @@ function Fractal(trianglesArr) {
   }
 }
 
-var nw = [0, 0]
-var n  = [500, 0]
-var ne = [1000, 0]
-var e  = [1000, 500]
-var se = [1000, 1000]
-var s  = [500, 1000]
-var sw = [0, 1000]
-var w  = [0, 500]
-var m =  [500, 500]
-var mnw = [490, 490]
-var mne = [510, 490]
-var mse = [510, 510]
-var msw = [490, 510]
+const r1 = Math.floor(Math.random() * (400 - 25 + 1)) + 25;
 
-var fractal = new Fractal([
+const nw = [0, 0]
+const n  = [500, 0]
+const ne = [1000, 0]
+const e  = [1000, 500]
+const se = [1000, 1000]
+const s  = [500, 1000]
+const sw = [0, 1000]
+const w  = [0, 500]
+const m =  [500, 500]
+const mnw = [500 - r1, 500 - r1]
+const mne = [500 + r1, 500 - r1]
+const mse = [500 + r1, 500 + r1]
+const msw = [500 - r1, 500 + r1]
+
+const fractal = new Fractal([
   [w, nw, mnw],
   [n, nw, mnw],
   [n, ne, mne],
