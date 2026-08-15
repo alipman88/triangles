@@ -1,26 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang=en>
 <head>
-  <meta charset="utf-8">
+  <meta charset=utf-8>
   <title>Triangles</title>
-  <meta name="description" content="">
-  <meta name="author" content="">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href='//fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
-  <script src="//cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js"></script>
+  <meta name=viewport content="width=device-width, initial-scale=1">
+  <link href=//fonts.googleapis.com/css?family=Raleway:400,300,600 rel=stylesheet type=text/css>
+  <link rel=stylesheet href=//cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css>
+  <script src=//cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js></script>
 
   <style>
+    body { margin: 1rem; }
+    button { margin: 0 0.5rem 1rem; }
+
     polygon {
       stroke: orange;
     }
+
+    .button-orange, .button-orange:focus {
+      color: white;
+      background-color: orange;
+      border-color: orange;
+    }
+
+    .button-orange:active, .button-orange:hover {
+      color: white;
+      background-color: darkorange;
+      border-color: darkorange;
+    }
   </style>
 </head>
-<body style="padding: 1em;">
-  <div class="container" style="text-align: center;">
-    <button class="button-primary" onclick="fractal.iterate(); return false;">Iterate</a>
+<body>
+  <div class=container style="text-align: center;">
+    <button class=button-orange onclick="fractal.iterate(); return false;">Iterate</a>
+    <button class=button-orange onclick="fractal.flip(); return false;">Toggle Grid</a>
   </div>
-  <svg id="main" width="1000" height="1000" style="display: block; margin: 1em auto; max-width: 100%"></svg>
-  <script src="js/triangles.js"></script>
+  <svg id=main viewBox="0 0 1000 1000" style="display: block; margin: auto; max-width: 100vh; max-height: calc(100vh - 8rem);"></svg>
+  <script src=js/triangles.js></script>
 </body>
 </html>

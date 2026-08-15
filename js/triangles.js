@@ -245,13 +245,18 @@ class Fractal {
       .domain([0, Math.PI])
       .range(["red", "yellow"]);
 
-    if (Math.random() < 0.5) {
-      this.fill = d => angleScale(d.widestAngle());
-      this.strokeWidth = () => 0;
-    } else {
-      this.fill = () => "black";
-      this.strokeWidth = () => 1;
-    }
+    this.colorSchemes = [
+      {
+        fill: d => angleScale(d.widestAngle()),
+        strokeWidth: () => 0,
+      },
+      {
+        fill: () => "black",
+        strokeWidth: () => 1,
+      },
+    ];
+
+    this.colorScheme = 0;
 
     this.svg = d3.select("#main");
 
@@ -266,14 +271,23 @@ class Fractal {
     }
   }
 
+  scheme() {
+    return this.colorSchemes[this.colorScheme];
+  }
+
   draw() {
     this.svg
       .selectAll("polygon")
       .data(this.triangles)
       .join("polygon")
       .attr("points", d => d.toString())
-      .attr("stroke-width", this.strokeWidth)
-      .attr("fill", this.fill);
+      .attr("stroke-width", this.scheme().strokeWidth)
+      .attr("fill", this.scheme().fill);
+  }
+
+  flip() {
+    this.colorScheme = (this.colorScheme + 1) % 2;
+    this.draw();
   }
 
   iterate() {
