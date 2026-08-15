@@ -1,286 +1,471 @@
-Array.prototype.distanceTo = function(otherPoint) {
-  const diffX = this[0] - otherPoint[0];
-  const diffY = this[1] - otherPoint[1];
+class Triangle {
+  constructor(a, b, c) {
+    this.a = a;
+    this.b = b;
+    this.c = c;
 
-  return Math.sqrt(Math.pow(diffX, 2) + Math.pow(diffY, 2));
-};
+    // Cache squared edge lengths.
+    const abx = a[0] - b[0];
+    const aby = a[1] - b[1];
 
-Array.prototype.cartesianSort = function() {
-  return this.sort(function(a, b) {
-    if (a[0] < b[0]) { return -1; }
-    if (a[0] > b[0]) { return  1; }
-    if (a[1] < b[1]) { return -1; }
-    if (a[1] > b[1]) { return  1; }
-    return 0;
-  })
-};
+    const bcx = b[0] - c[0];
+    const bcy = b[1] - c[1];
 
-Array.prototype.distanceSort = function() {
-  return this.sort(function(a, b) {
-    return a[0].distanceTo(a[1]) - b[0].distanceTo(b[1]);
-  })
-};
+    const cax = c[0] - a[0];
+    const cay = c[1] - a[1];
 
-function Triangle(a, b, c) {
-  this.a = a;
-  this.b = b;
-  this.c = c;
+    this.ab2 = abx * abx + aby * aby;
+    this.bc2 = bcx * bcx + bcy * bcy;
+    this.ca2 = cax * cax + cay * cay;
 
-  this.widestAngle = function() {
-    const vertices = this.verticesObtuseLast();
-    const opposite = vertices[2];
-    const adjacent1 = vertices[0];
-    const adjacent2 = vertices[1];
+    // Determine the longest edge once.
+    if (this.ab2 >= this.bc2 && this.ab2 >= this.ca2) {
+      // AB is longest; C is opposite.
+      this.longestA = a;
+      this.longestB = b;
+      this.opposite = c;
+    } else if (this.bc2 >= this.ca2) {
+      // BC is longest; A is opposite.
+      this.longestA = b;
+      this.longestB = c;
+      this.opposite = a;
+    } else {
+      // CA is longest; B is opposite.
+      this.longestA = c;
+      this.longestB = a;
+      this.opposite = b;
+    }
 
-    const a = opposite.distanceTo(adjacent1);
-    const b = opposite.distanceTo(adjacent2);
-    const c = adjacent1.distanceTo(adjacent2);
+    this._widestAngle = undefined;
+  }
 
-    return Math.acos(
-      (Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)) /
-      (2 * a * b)
+  isObtuse() {
+    const longest = Math.max(
+      this.ab2,
+      this.bc2,
+      this.ca2
+    );
+
+    // All values are squared distances, so no sqrt is necessary.
+    return 0.01 + 2 * longest > this.ab2 + this.bc2 + this.ca2;
+  }
+
+  widestAngle() {
+    if (this._widestAngle !== undefined) {
+      return this._widestAngle;
+    }
+
+    // The widest angle is opposite the longest edge.
+    //
+    // If longest edge is AB, then the opposite vertex is C.
+    // By the cosine rule:
+    //
+    // cos(C) = (CA² + CB² - AB²) / (2 * CA * CB)
+
+    let adjacent1Squared;
+    let adjacent2Squared;
+    let oppositeSquared;
+
+    if (this.ab2 >= this.bc2 && this.ab2 >= this.ca2) {
+      adjacent1Squared = this.ca2;
+      adjacent2Squared = this.bc2;
+      oppositeSquared = this.ab2;
+    } else if (this.bc2 >= this.ca2) {
+      adjacent1Squared = this.ab2;
+      adjacent2Squared = this.ca2;
+      oppositeSquared = this.bc2;
+    } else {
+      adjacent1Squared = this.bc2;
+      adjacent2Squared = this.ab2;
+      oppositeSquared = this.ca2;
+    }
+
+    const denominator =
+      2 *
+      Math.sqrt(adjacent1Squared * adjacent2Squared);
+
+    let cosine = (
+      adjacent1Squared +
+      adjacent2Squared -
+      oppositeSquared
+    ) / denominator;
+
+    // Protect against tiny floating-point errors.
+    cosine = Math.max(-1, Math.min(1, cosine));
+
+    this._widestAngle = Math.acos(cosine);
+
+    return this._widestAngle;
+  }
+
+  centroid() {
+    return [
+      (this.a[0] + this.b[0] + this.c[0]) / 3,
+      (this.a[1] + this.b[1] + this.c[1]) / 3
+    ];
+  }
+
+  trisectInto(output) {
+    const m = this.centroid();
+
+    output.push(
+      new Triangle(this.a, this.b, m),
+      new Triangle(this.a, m, this.c),
+      new Triangle(m, this.b, this.c)
     );
   }
 
-  this.isObtuse = function() {
-    const ab = this.a.distanceTo(this.b);
-    const bc = this.b.distanceTo(this.c);
-    const ca = this.c.distanceTo(this.a);
+  merge(otherTriangle) {
+    const v1 = this.opposite;
+    const v2 = otherTriangle.opposite;
 
-    const longest = Math.max(ab, bc, ca);
+    const t1 = new Triangle(
+      v1,
+      v2,
+      this.longestA
+    );
 
-    return 0.01 + 2 * longest ** 2 > ab ** 2 + bc ** 2 + ca ** 2;
-  };
+    const t2 = new Triangle(
+      v1,
+      v2,
+      this.longestB
+    );
 
-  this.centroid = function() {
-    const x = (this.a[0] + this.b[0] + this.c[0]) / 3;
-    const y = (this.a[1] + this.b[1] + this.c[1]) / 3;
-
-    return [x, y];
+    return [t1, t2];
   }
 
-  this.trisect = function() {
-    const m = this.centroid();
-
-    return [
-      new Triangle(this.a, this.b, m),
-      new Triangle(this.a, m, this.c),
-      new Triangle(m, this.b, this.c),
-    ];
+  obtuseVertex() {
+    return this.opposite;
   }
 
-  this.merge = function(otherTriangle) {
-    const longestEdge = this.longestEdge();
-    const v1 = this.obtuseVertex();
-    const v2 = otherTriangle.obtuseVertex();
-
-    t1 = new Triangle(v1, v2, longestEdge[0]);
-    t2 = new Triangle(v1, v2, longestEdge[1]);
-
-    return [
-      t1,
-      t2,
-    ];
+  longestEdge() {
+    return [this.longestA, this.longestB];
   }
 
-  this.toString = function() {
-    return this.a[0] + "," + this.a[1] + " " + this.b[0] + "," + this.b[1] + " " + this.c[0] + "," + this.c[1];
+  longestEdgeIsHorizontal() {
+    return this.longestA[1] === this.longestB[1];
   }
 
-  this.verticesObtuseLast = function() {
-    if (this.verticesObtuseLastMemo === undefined) {
-      this.verticesObtuseLastMemo = [
-        [this.a, this.b, this.c],
-        [this.b, this.c, this.a],
-        [this.c, this.a, this.b],
-      ].distanceSort().map(x => x[2]);
+  longestEdgeIsVertical() {
+    return this.longestA[0] === this.longestB[0];
+  }
+
+  longestEdgeOnWesternBorder() {
+    return (
+      this.longestEdgeIsVertical() &&
+      this.longestA[0] === 0
+    );
+  }
+
+  longestEdgeOnEasternBorder() {
+    return (
+      this.longestEdgeIsVertical() &&
+      this.longestA[0] === 1000
+    );
+  }
+
+  longestEdgeOnNorthernBorder() {
+    return (
+      this.longestEdgeIsHorizontal() &&
+      this.longestA[1] === 0
+    );
+  }
+
+  longestEdgeOnSouthernBorder() {
+    return (
+      this.longestEdgeIsHorizontal() &&
+      this.longestA[1] === 1000
+    );
+  }
+
+  inBounds() {
+    const a = this.a;
+    if (
+      a[0] > 0 &&
+      a[0] < 1000 &&
+      a[1] > 0 &&
+      a[1] < 1000
+    ) {
+      return true;
     }
 
-    return this.verticesObtuseLastMemo;
-  }
-
-  this.obtuseVertex = function() {
-    return this.verticesObtuseLast()[2];
-  }
-
-  this.longestEdge = function() {
-    const vertices = this.verticesObtuseLast();
-
-    return [vertices[0], vertices[1]];
-  }
-
-  this.longestEdgeIsHorizontal = function() {
-    const vertices = this.longestEdge();
-
-    return vertices[0][1] === vertices[1][1];
-  }
-
-  this.longestEdgeIsVertical = function() {
-    const vertices = this.longestEdge();
-
-    return vertices[0][0] === vertices[1][0];
-  }
-
-  this.longestEdgeOnWesternBorder = function() {
-    const vertices = this.longestEdge();
-
-    return this.longestEdgeIsVertical() && vertices[0][0] === 0;
-  };
-
-  this.longestEdgeOnEasternBorder = function() {
-    const vertices = this.longestEdge();
-
-    return this.longestEdgeIsVertical() && vertices[0][0] === 1000;
-  };
-
-  this.longestEdgeOnNorthernBorder = function() {
-    const vertices = this.longestEdge();
-
-    return this.longestEdgeIsHorizontal() && vertices[0][1] === 0;
-  };
-
-  this.longestEdgeOnSouthernBorder = function() {
-    const vertices = this.longestEdge();
-
-    return this.longestEdgeIsHorizontal() && vertices[0][1] === 1000;
-  };
-
-  this.inBounds = function() {
-    for (const vertex of [this.a, this.b, this.c]) {
-      if (vertex[0] > 0 && vertex[0] < 1000 && vertex[1] > 0 && vertex[1] < 1000) {
-        return true;
-      }
+    const b = this.b;
+    if (
+      b[0] > 0 &&
+      b[0] < 1000 &&
+      b[1] > 0 &&
+      b[1] < 1000
+    ) {
+      return true;
     }
 
-    return false;
+    const c = this.c;
+    return (
+      c[0] > 0 &&
+      c[0] < 1000 &&
+      c[1] > 0 &&
+      c[1] < 1000
+    );
   }
 
-  this.longestEdgeToString = function() {
-    const vertices = this.longestEdge().cartesianSort();
+  toString() {
+    return (
+      this.a[0] + "," + this.a[1] + " " +
+      this.b[0] + "," + this.b[1] + " " +
+      this.c[0] + "," + this.c[1]
+    );
+  }
 
-    return vertices[0][0] + "," + vertices[0][1] + " " + vertices[1][0] + "," + vertices[1][1];
+  longestEdgeToString() {
+    const a = this.longestA;
+    const b = this.longestB;
+
+    if (
+      a[0] < b[0] ||
+      (a[0] === b[0] && a[1] <= b[1])
+    ) {
+      return (
+        a[0] + "," + a[1] + ":" +
+        b[0] + "," + b[1]
+      );
+    }
+
+    return (
+      b[0] + "," + b[1] + ":" +
+      a[0] + "," + a[1]
+    );
   }
 }
 
-function Fractal(trianglesArr) {
-  this.triangles = [];
+class Fractal {
+  constructor(trianglesArr) {
+    this.triangles = new Array(trianglesArr.length);
 
-  const angleScale = d3.scaleLinear()
-    .domain([0, Math.PI])
-    .range(["red", "yellow"]);
+    const angleScale = d3.scaleLinear()
+      .domain([0, Math.PI])
+      .range(["red", "yellow"]);
 
-  this.svg = d3.select("#main");
+    if (Math.random() < 0.5) {
+      this.fill = d => angleScale(d.widestAngle());
+      this.strokeWidth = () => 0;
+    } else {
+      this.fill = () => "black";
+      this.strokeWidth = () => 1;
+    }
 
-  for (const triangleArr of trianglesArr) {
-    const triangle = new Triangle(triangleArr[0], triangleArr[1], triangleArr[2])
-    this.triangles.push(triangle);
+    this.svg = d3.select("#main");
+
+    for (let i = 0; i < trianglesArr.length; i++) {
+      const triangleArr = trianglesArr[i];
+
+      this.triangles[i] = new Triangle(
+        triangleArr[0],
+        triangleArr[1],
+        triangleArr[2]
+      );
+    }
   }
 
-  this.draw = function() {
-    this.svg.selectAll("polygon").remove();
-
+  draw() {
     this.svg
       .selectAll("polygon")
       .data(this.triangles)
-      .enter()
-      .append("polygon")
-      .attr("points", function (d) { return d.toString(); })
-      .attr("fill", function(d) {
-        return angleScale(d.widestAngle());
-      })
+      .join("polygon")
+      .attr("points", d => d.toString())
+      .attr("stroke-width", this.strokeWidth)
+      .attr("fill", this.fill);
   }
 
-  this.iterate = function() {
+  iterate() {
     const nextTriangles = [];
-    const obtusePairs = {};
+    const obtusePairs = new Map();
 
-    while (this.triangles.length > 0) {
-      const triangle = this.triangles.pop();
-      let newTriangles = [];
+    // Reuse one array while processing triangles.
+    const triangles = this.triangles;
+
+    while (triangles.length > 0) {
+      const triangle = triangles.pop();
 
       if (triangle.isObtuse()) {
-        const longestEdge = triangle.longestEdgeToString();
+        const v1 = triangle.longestA;
+        const v2 = triangle.longestB;
+        const v3 = triangle.opposite;
 
-        if (longestEdge in obtusePairs) {
-          const otherTriangle = obtusePairs[longestEdge];
-          newTriangles = triangle.merge(otherTriangle);
-          delete obtusePairs[longestEdge];
-        } else if (triangle.longestEdgeOnWesternBorder()) {
-          const vertices = triangle.verticesObtuseLast();
-          const otherTriangle = new Triangle(vertices[0], vertices[1], [-vertices[2][0], vertices[2][1]]);
-          newTriangles = triangle.merge(otherTriangle);
-          delete obtusePairs[longestEdge];
-        } else if (triangle.longestEdgeOnEasternBorder()) {
-          const vertices = triangle.verticesObtuseLast();
-          const otherTriangle = new Triangle(vertices[0], vertices[1], [2000 - vertices[2][0], vertices[2][1]]);
-          newTriangles = triangle.merge(otherTriangle);
-          delete obtusePairs[longestEdge];
-        } else if (triangle.longestEdgeOnNorthernBorder()) {
-          const vertices = triangle.verticesObtuseLast();
-          const otherTriangle = new Triangle(vertices[0], vertices[1], [vertices[2][0], -vertices[2][1]]);
-          newTriangles = triangle.merge(otherTriangle);
-          delete obtusePairs[longestEdge];
-        } else if (triangle.longestEdgeOnSouthernBorder()) {
-          const vertices = triangle.verticesObtuseLast();
-          const otherTriangle = new Triangle(vertices[0], vertices[1], [vertices[2][0], 2000 - vertices[2][1]]);
-          newTriangles = triangle.merge(otherTriangle);
-          delete obtusePairs[longestEdge];
-        } else {
-          obtusePairs[longestEdge] = triangle;
+        const longestEdgeKey = triangle.longestEdgeToString();
+
+        const pairedTriangle = obtusePairs.get(longestEdgeKey);
+
+        if (pairedTriangle !== undefined) {
+          const newTriangles = triangle.merge(pairedTriangle);
+
+          if (newTriangles[0].inBounds()) {
+            nextTriangles.push(newTriangles[0]);
+          }
+
+          if (newTriangles[1].inBounds()) {
+            nextTriangles.push(newTriangles[1]);
+          }
+
+          obtusePairs.delete(longestEdgeKey);
         }
-      } else {
-        newTriangles = triangle.trisect();
+
+        else if (
+          v1[0] === v2[0] &&
+          v1[0] === 0
+        ) {
+          const otherTriangle = new Triangle(
+            v1,
+            v2,
+            [-v3[0], v3[1]]
+          );
+
+          const newTriangles = triangle.merge(otherTriangle);
+
+          if (newTriangles[0].inBounds()) {
+            nextTriangles.push(newTriangles[0]);
+          }
+
+          if (newTriangles[1].inBounds()) {
+            nextTriangles.push(newTriangles[1]);
+          }
+        }
+
+        else if (
+          v1[0] === v2[0] &&
+          v1[0] === 1000
+        ) {
+          const otherTriangle = new Triangle(
+            v1,
+            v2,
+            [2000 - v3[0], v3[1]]
+          );
+
+          const newTriangles = triangle.merge(otherTriangle);
+
+          if (newTriangles[0].inBounds()) {
+            nextTriangles.push(newTriangles[0]);
+          }
+
+          if (newTriangles[1].inBounds()) {
+            nextTriangles.push(newTriangles[1]);
+          }
+        }
+
+        else if (
+          v1[1] === v2[1] &&
+          v1[1] === 0
+        ) {
+          const otherTriangle = new Triangle(
+            v1,
+            v2,
+            [v3[0], -v3[1]]
+          );
+
+          const newTriangles = triangle.merge(otherTriangle);
+
+          if (newTriangles[0].inBounds()) {
+            nextTriangles.push(newTriangles[0]);
+          }
+
+          if (newTriangles[1].inBounds()) {
+            nextTriangles.push(newTriangles[1]);
+          }
+        }
+
+        else if (
+          v1[1] === v2[1] &&
+          v1[1] === 1000
+        ) {
+          const otherTriangle = new Triangle(
+            v1,
+            v2,
+            [v3[0], 2000 - v3[1]]
+          );
+
+          const newTriangles = triangle.merge(otherTriangle);
+
+          if (newTriangles[0].inBounds()) {
+            nextTriangles.push(newTriangles[0]);
+          }
+
+          if (newTriangles[1].inBounds()) {
+            nextTriangles.push(newTriangles[1]);
+          }
+        }
+
+        else {
+          obtusePairs.set(longestEdgeKey, triangle);
+        }
       }
 
-      for (const newTriangle of newTriangles) {
-        if (newTriangle.inBounds()) {
-          nextTriangles.push(newTriangle);
-        }
+      else {
+        triangle.trisectInto(nextTriangles);
       }
     }
 
-    for (const longestEdge in obtusePairs) {
-      nextTriangles.push(obtusePairs[longestEdge]);
+    // Any unpaired obtuse triangles survive unchanged.
+    for (const triangle of obtusePairs.values()) {
+      nextTriangles.push(triangle);
     }
 
     this.triangles = nextTriangles;
+
     this.draw();
   }
 }
 
-const r1 = Math.floor(Math.random() * (400 - 25 + 1)) + 25;
 
-const nw = [0, 0]
-const n  = [500, 0]
-const ne = [1000, 0]
-const e  = [1000, 500]
-const se = [1000, 1000]
-const s  = [500, 1000]
-const sw = [0, 1000]
-const w  = [0, 500]
-const m =  [500, 500]
-const mnw = [500 - r1, 500 - r1]
-const mne = [500 + r1, 500 - r1]
-const mse = [500 + r1, 500 + r1]
-const msw = [500 - r1, 500 + r1]
+// ------------------------------------------------------------
+// Initial geometry
+// ------------------------------------------------------------
+
+const r1 = Math.floor(
+  Math.random() * (400 - 25 + 1)
+) + 25;
+
+const nw  = [0, 0];
+const n   = [500, 0];
+const ne  = [1000, 0];
+const e   = [1000, 500];
+const se  = [1000, 1000];
+const s   = [500, 1000];
+const sw  = [0, 1000];
+const w   = [0, 500];
+const m   = [500, 500];
+
+const mnw = [500 - r1, 500 - r1];
+const mne = [500 + r1, 500 - r1];
+const mse = [500 + r1, 500 + r1];
+const msw = [500 - r1, 500 + r1];
+
+
+// ------------------------------------------------------------
+// Fractal
+// ------------------------------------------------------------
 
 const fractal = new Fractal([
   [w, nw, mnw],
   [n, nw, mnw],
+
   [n, ne, mne],
   [e, ne, mne],
+
   [w, sw, msw],
   [s, sw, msw],
+
   [s, se, mse],
   [e, se, mse],
+
   [w, mnw, msw],
   [e, mne, mse],
+
   [n, mnw, mne],
   [s, msw, mse],
+
   [m, mne, mnw],
   [m, mne, mse],
   [m, mse, msw],
-  [m, mnw, msw],
+  [m, mnw, msw]
 ]);
 
 fractal.draw();
